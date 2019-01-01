@@ -145,8 +145,30 @@ readme/.gitignore文件，所以无法提交成功。所以要先拉取一下远
 
 ![](https://api.superbed.cn/pic/5c2b75639dc6d672c31ed962)
 
-[原文链接](https://mp.weixin.qq.com/s?__biz=MzU0OTExNzYwNg==&mid=2247484483&idx=1&sn=db181ee210f9490379af3e4a74f0cde8&chksm=fbb58f8accc2069cbe9afda4fcf0222791aee3eefa56e3471d05f4ca7390464ea2ab66e472a0&token=942885247&lang=zh_CN&rd2werd=1#wechat_redirect)
+<br/>**HEAD**
+<br/>commit记录后面括号对应着指向这个commit的引用，注意到commit提交信息第一条后面的括号里的HEAD，它
+永远指向当前的commit，就是当前工作目录对应的提交commit
 
+<br/>HEAD同时也指向一个分支，图中的HEAD->master，表示当前工作目录对应的是本地master分支
+<br/>通常每次有一条新的commit记录时，工作目录会与这条最新的commit对应，HEAD指针也会指向它
+(在使用checkout reset等操作切换当前工作目录对应的commit时，HEAD也会跟过去，后面会说)
+
+![](https://ae01.alicdn.com/kf/HTB1e89PaE_rK1Rjy0Fc762EvVXax.png)
+<br/>如图，我们commit了最新的提交信息并且push到了远端，本地的HEAD指向我们最新的提交，并且远端仓库也指向它，另外
+，在我们push操作的时候，HEAD并不会推送到远端，远端的HEAD永远指向默认分支master
+
+<br/>**master**
+<br/>一个没有提交记录的新项目，在创建第一条commit时，会默认提交到master分支，同时HEAD也指向它
+
+<br/>在我们clone远端项目时，默认也会在本地checkout出一个master分支，并将本地工作目录的文件保持与clone下来的项目
+的master分支最新commit一致，HEAD也会指向它
+
+<br/>绝大数团队会选择master作为核心分支，其余分支都是围绕master来开发，但本质上各个分支都是一样的，都是一串commit
+信息记录
+
+#### 资料来源与推荐阅读
++ [原文链接](https://mp.weixin.qq.com/s?__biz=MzU0OTExNzYwNg==&mid=2247484483&idx=1&sn=db181ee210f9490379af3e4a74f0cde8&chksm=fbb58f8accc2069cbe9afda4fcf0222791aee3eefa56e3471d05f4ca7390464ea2ab66e472a0&token=942885247&lang=zh_CN&rd2werd=1#wechat_redirect)
++ [git diff](https://www.jianshu.com/p/80542dc3164e)
 
 
 
