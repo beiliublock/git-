@@ -1,176 +1,181 @@
-### Git(中)
+## Git(下)
 
-#### 1.branch分支的创建和切换
-<font color=green size=5>git branch/ git checkout/ git checkout -b/ git branch -b</font>
+### 1.丢失最新的提交
+<font color=green size=5>涉及到的命令：git reset</font>
+  1. 最新一次的commit的内容有问题，想要丢弃这次提交，先log看下提交记录：
 
-    git branch 新分支的名称   //创建分支
-这样创建完新的分支，并不会自动切换到新的分支上
+  &emsp;&ensp;![](https://ae01.alicdn.com/kf/HTB1kmK8asfrK1RkSnb4760HRFXaw.png)
+  <br/>如果想要恢复到HEAD前面的那次commit记录，也就是first commit 2，执行：
 
-    git checkout 分支名  //切换分支
-以上两部分可以合并
+    git reset HEAD~1  //或者使用 git reset HEAD^ 前面说过它们的效果是一样的
+  执行看下结果，log看下提交记录：
 
-    git checkout -b 新的分支名  //创建并切换到新的分支
+  &emsp;&ensp;![](https://i.loli.net/2019/01/02/5c2c92615c004.png)
+  <br/>这里需要注意的是，被撤消的那条提交并没有消失，只是log不再展现出来，因为已被丢弃。如果在撤消
+  它之前记下了它的SHA-1码，那么还可以通过这个编码找到它，执行如下：
 
-![](https://i.loli.net/2019/01/01/5c2b869ae9539.png)
-<br/>切换到新的分支后，HEAD也会跟着过去，当当前新分支有新的commit时，HEAD会指向这个分支最新的commit，master
-会停留在它之前对应的commit记录那里，因为那是属于master分支最新的commit记录
+  &emsp;&ensp;![](https://i.loli.net/2019/01/02/5c2c97d722dd5.png)
+  <br/>这个时候，我们查看一下本地仓库的状态，发现"nothing to commit",不再是"Untracked files"的状态了
 
-    git branch -d 分支名  //删除分支
-<br/>需要注意，HEAD指向的分支无法删除，也就是我们所在的分支，需要先checkout切换到别的分支，再去删除之前的分支
+  2. <font color=green size=5>参数：--hard &ensp;  --soft &ensp; --mixed</font>
+  <br/>回顾一下，我们先前讲的内容：工作目录(working area)，暂存区(index)和本地版本库(HEAD)的区别，
+  这里reset后面跟的参数影响的正是这三者内部的数据状态
 
-<br/>我们删除了一个分支后，并不会删除这个分支上的提交记录，其实branch这个分支的概念，更确切地说是一个引用，是
-一个指向，指向一串提交记录，我们删除了分支之后只是删除了对这个分支包含地提交记录地一个引用，虽然说我们没有删除
-它们，但是Git地回收机制会定期清理那些不在任何分支上地commit记录
+      1. <font color=green size=4>git reset --soft</font>
+      <br/>执行这句命令时，实际上我们只是把本地版本库，指向了我们要指向的那个commit，而暂存区和本地
+      工作目录一致，保留着我们的文件修改，操作看下：
 
-#### 2.merge 合并冲突
-<font color=green size=5>git merge/ git merge --abort</font>
+      &emsp;&ensp;&ensp;![](https://i.loli.net/2019/01/02/5c2c9ba349754.png)
+      <br/>执行完，status看下工作区状态，我们可以看到现在我们的暂存区有一个待commit的文件，证明现在
+      本地版本库和暂存区是不一致的，而这个不一致刚好是我们丢弃的那次commit修改的内容，同时我们并没有
+      看到有文件是"changes not staged for commit"，说明当前我们的工作目录和暂存区文件状态是一致的
+      <br/>**总结如下**：HEAD(本地版本库) != INDEX(暂存区文件内容)；INDEX=WORKING AREA(本地工作目录)
 
-<br/>merge意思为合并，把目标分支合并到当前分支，一般在我们分支协作开发，某一分支地开发完成可以合并到主流程地
-时候，这样去操作
+      2. <font color=green size=4>git reset --hard</font>
+      <br/>执行这句命令时，不仅本地版本库会指向我们指定的commit记录，同时暂存区和本地工作目录也会同步
+      变化成我们制定的commit记录状态，期间所有的更改全部丢失，操作看下：
 
-<br/>实际行为是，从当前分支和要合并地目标分支地分叉点开始，将目标分支路径上的所有commit内容应用到当前的commit，
-并且生成一个新的commit
+      &emsp;&ensp;&ensp;![](https://i.loli.net/2019/01/02/5c2c9fd435a35.png)
+      <br/>执行完我们看到，暂存区和工作目录都没有文件记录
+      <br/>**总结如下**：HEAD(本地版本库) == INDEX(暂存区文件内容) == WORKING AREA(本地工作目录)
 
-<br/>我们在本地master分支上执行
+      3. <font color=green size=4>git reset --mixed(default)</font>
+      <br/>--mixed是reset的默认参数，也就是当我们不指定任何参数时的参数。它将我们本地版本库指向我们
+      制定的commit记录，同时暂存区也同步变化，而本地工作目录并不变化，所有我们丢弃的commit记录涉及的
+      文件更改都会保存在本地工作目录working area中，所以数据不会丢失，但是所有改动都未被添加进暂存区，
+      方便我们检查修改，操作看下：
 
-    git merge v1.0
-将v1.0分支上的两个commit记录4和5与本地分支上最新的commit3合并成一个了一个新的commit,如图中的6
+      &emsp;&ensp;&ensp;![](https://i.loli.net/2019/01/02/5c2ca681178ad.png)
+      <br/>执行完我们看到，在工作目录中有文件修改，而暂存区和本地版本库与我们指定的commit记录保持一致
+      <br/>**总结如下**：HEAD(本地版本库) == INDEX(暂存区文件内容)；HEAD(本地版本库) != WORKING AREA
+      (本地工作目录)
 
-![](https://ww1.sinaimg.cn/large/007iUjdigy1fyrj01qg74j30jk0ec0t1.jpg)
+### 2.丢弃历史中某一条提交
+<font color=green size=5>涉及到的命令：git rebase -i/ git rebase --onto</font>
 
-<br/>**冲突解决**
-<br/>合并操作时，通常情况下git会帮我们自动合并两个分支上的改动，包括不同文件或者同一文件的不同位置的
-修改，但既然是分支分开开发，免不了同时修改了相同的文件的同一内容，这时候就需要冲突合并
+<br/>上面我们说到reset可以让我们回归到历史的某条commit记录，但是我们从那条记录之后的记录就被丢弃，如果我们
+只想丢弃历史记录中的某一条而不影响其之后的记录要怎么做呢？
+<br/>还是通过git rebase。这里不放在rebase的部分一起说是因为rebase的这个用法，在reset之后来讲会方便理解
 
-<br/>例如我从上图2的位置新建了分支v1.0，commit4和修改了test.txt文件，同时在master分支的commit3中也修改
-了test.txt文件，这时我在master上运行merge远端的分支v1.0；test.txt出现了"merge conflict"合并冲突，自动
-合并失败，要求"fix conflicts and then commit the result"把冲突解决后再提交
+   1. <font color=green size=4>git rebase -i</font>
 
-![](https://ae01.alicdn.com/kf/HTB1pFS1asfrK1RjSszc760GGFXaP.png)
+   &emsp;&ensp;&ensp;![](https://i.loli.net/2019/01/02/5c2cb039f0cb2.png)
+   <br/>假设这里我们想要撤掉圈出来的second commit 2，回想一下上面说的交互式rebase -i，我们把基础点设置
+   成我们丢弃的commit前面的commit(实际上只要设置成包含我们删除的记录们的前面的任意一条都可以)
 
-<br/>**手动解决**
-<br/>我们可以选择手动解决一下，打开文件(test.txt，即出现冲突的文件)，把不需要的分支的内容删掉(包括===》这些符号)，然后重新提交
-这个冲突文件即可
+    git rebase -i HEAD~2  //-i后跟着的是我们要删除的记录前面的任意记录  设为基础点
+   &emsp;&ensp;&ensp;![](https://i.loli.net/2019/01/02/5c2cb2229b785.png)
+   <br/>进入编辑页后，i进入插入模式，我们之前修改commit是将pick(直接应用)修改为edit，这次要撤消某条记录，
+   我们直接把该记录删除
 
-![](https://ae01.alicdn.com/kf/HTB1Dz3hajLuK1Rjy0Fh760pdFXa7.png)
+   &emsp;&ensp;&ensp;![](https://i.loli.net/2019/01/02/5c2cb32f1221b.png)
+   <br/>保存后退出，我们会看到成功的提示，也可以用git log查看提交历史，同时工作目录和本地版本库也会删除该
+   文件
 
-<br/>**放弃合并，撤消merge操作**
+   &emsp;&ensp;&ensp;![](https://i.loli.net/2019/01/02/5c2cb69450baa.png)
 
-    git merge --abort  //取消
-执行之后回去看冲突文件，就变成了merge之前的状态
+   2. <font color=green size=4>git rebase --onto</font>
+   <br/>我们之前在对分支执行rebase时，是选择所在分支与目标的交叉点作为起点，把所在分支从这个起点到最新的
+   commit记录接到目标分支的结尾
+   <br/>而rebase --onto可以帮助我们指定这个起点，从新起点到所在分支最新记录之前的commit记录才接到目标分支上
 
-<br/>如果当前分支的所有提交另一个分支都包含，就是在上图2的位置合并v1.0的内容，这时其实commit记录也就还是
-一条线，1245，所以把本地的HEAD和分支(例子中是master)也指向v1.0的最新commit记录5就可以了
+   <br/>假设我们在1245这条分支上，对123(master)执行rebase不带任何参数，默认我们所在分支的起点是2，2后面de4
+   和5(v1.0)会复制出来一个6和7接在3后面
+   <br/>如果我们只想把5提交到3上，不想附带上4，那么我们就可以执行：
 
-<br/>在遇到冲突的时候，git并不会自动为我们生成一个commit记录，而是我们修改完之后自己去提交这个记录
+    git rebase --onto 3 4 5 //345分别是commit记录的代指
+   --onto参数后面有三个附加参数：目标commit(要接在哪次记录后面)、起点commit(起点排除在外，从起点之后
+   的记录)、终点commit。所以上面这行指令就会从4(不包括4)往下数，一直数到5，把中间涵盖的所有commit记录，重新
+   提交到3上去
+   <br/>假设我们要丢失当前分支倒数第二个提交，HEAD^对应的那个，那么我们只要执行：
 
-#### 3.rebase 避免出现分支的合并
-<font color=green size=5>涉及到的命令：git rebase</font>
+    git rebase --onto HEAD^^ HEAD^ HEAD
+  这句的意思是，以倒数第三个新的目标点，从倒数第二个不包括倒数第二个的commit记录开始，到HEAD之间的(本例中只有
+  HEAD一个)接到新的目标点之后，所有倒数第二个就被跳过，直接最新的接在倒数第三给后面
 
-<br/>通过merge来协作开发，历史记录会出现很多分支，如果想避免这样导致混乱，可以采用rebase命令
+### 3.生成一条新提交的撤销操作
+<font color=green size=5>涉及到的命令：git revert</font>
 
-    git rebase 目标分支
-假设我们现在需要将v1.0的记录合并到master，并且丢弃现在有的分叉，执行：
+<br/>在我们已经push到远端仓库后发现有一条commit记录对应的修改应该被删除时，我们可以再用上面的操作方式在本地
+仓库操作删除那条记录，再推送到远端，再推送到远端，但是注意，因为我们是删除了一条记录，所以在我们推送远端仓库
+的时候，会因为我们本地没有远端对应的那条记录而提示push失败
 
-    git checkout v1.0   //先切换到需要被合并的分支v1.0上
-    git rebase master //向要合并进去的分支master发出rebase命令
-实际上是我们需要被合并的分支v1.0，将其分叉点2重新设置为要被合并的目标分支master的最新commit3上，
-4和5的基础点从2变成了3，同时我们所在的分支最新一条记录和HEAD都对应到合并后的最新的commit记录7上
+<br/>这时，如果你本来就希望用本地的内容覆盖掉中央仓库的内容，并且有足够的把握不会影响别的同事的代码，那么就不
+要按照提示先pull再push了，而是选择[强行]push:
 
-![](https://i.loli.net/2019/01/02/5c2c5267a88a5.png)
+    git push origin 分支名 -f //-f  force 强制
+但是在我们分支协作开发时，在向master分支提交代码时，是不应该用`-f`的，因为这样很容易让我们本地的内容覆盖
+或者影响同事们提交上去的代码。那这个时候如果我们想要撤销某次提交对应的改动要怎么办呢？
 
-![](https://i.loli.net/2019/01/02/5c2c5312661cc.png)
-<br/>4和5因为没有分支引用指向它，之后会被Git回收机制清除
+<br/>生成一条与我们要撤销的那条记录相反的新的commit记录：
 
-<br/>**为什么不在master上执行rebase**
+    git revert 要撤销的改动对应的commit记录
+git revert会生成一个与后面对应的commit记录相反的一次文件提交，从而将那次修改抵消，达到撤销的效果
+<br/>执行revert后再push到远端，我们文件内容就恢复了。revert的方式并不会造成某条记录在历史记录中消失，而
+只是生成一个新的与我们要撤销的记录相反的文件提交而已
 
-<br/>在我们分支开发的时候，通常都是以master以核心的分支，如果我们在master上对v1.0执行rebase，
-那么3和6就会指出新的接在5后面，3和6这两个commit在我们核心分支包含的路径中不存在了，现在master是124567，
-这样协作开发的其余同事在push代码时，因为他们本地有3和6而远端master没有3和6，就是提交失败(具体原因和readme/.gitingore同理)
+### 4.分支与HEAD分离
+<font color=green size=5>涉及到的命令：git checkout</font>
 
-<br/>关于rebase，只要记住，它是修改需要被合并的分支的基础点，同时与merge相反，需要在被合并的分支上操作的指令
+<br/>上面我们讲到，在我们执行`git checkout branchName`的时候，HEAD会指向这个分支，同时两者都指向这个分支
+最新的那条commit记录。其实我们操作的这些分支，就是我们的一种理解，本质上它也是一个指针，对应着commit记录，
+所以checkout后面也可以直接指定某一条commit记录
+<br/>但是不一样的是，在我们checkout到某一条特定的commit记录时，HEAD和分支就脱离了，我们就只是让HEAD指向了
+我们指定的记录，而所在的分支的指针并没有同步过来
 
-#### 4.修改被rebase分支的历史记录
-<font color=green size=5>涉及到的命令：rebase -i/ git rebase --continue/ git rebase --abort</font>
+<br/>checkout本质上的功能其实是迁出到指定的commit记录的那一种操作
 
-<br/>如果我们想在rebase的过程中对一部分提交(commit)进行修改，可以在"git rebase"命令中加入`-i`或`-interactive`
-参数去调用交互模式
+![](https://i.loli.net/2019/01/02/5c2cb69450baa.png)
+<br/>可以看到我们所在的“分支”也变成了hEAD指向的commit记录的id
 
-<br/>假设我们要将v1.0上的commit记录的基础点重设为master分支的最后一条，同时希望修改我们接到master后面的v1.0
-上提交信息
+    git checkout --detach
+<br/>执行这行代码，Git就会把HEAD和branch原地脱离，直接指向当前commit
 
-<br/>看下v1.0上的commit记录，最后一条是master上的提交，那次提交便是v1.0在master上的基础点：
+### 5.临时存放工作目录的改动
+<font color=green size=5>涉及到的命令：git stash</font>
 
-![](https://i.loli.net/2019/01/02/5c2c6798ea253.png)
+<br/>工作中可能经常遇到我们现在某个分支开发，突然需要切换到master发个包或者到别的分支做些修复，但是我们本地改了
+一半的东西又不想先提交(例如：可能会有改了一半的bug，推上去的话搞得一起在这个分支的同时拉下来项目都跑不起来)，为了
+防止带到别的分支同时不用提交到远端分支，又不丢弃自己现在的改动，我们可以借用stash
 
-<br/>我们在v1.0上执行：`git rebase -i master`
+    git stash  //临时保存工作区的改动
+stash指令可以帮你把工作目录的内容全部放在你本地的一个独立的地方，不是暂存区，它不会被提交，也不会被删除，同时你的
+工作目录已经清理干净，可以随时切换分支，等之后需要的时候，再回到这个分支把这部分改动取出来
 
-![](https://i.loli.net/2019/01/02/5c2c68138ebeb.png)
+    git stash pop  //取出工作区的改动
+这里注意，我们untracked的文件，是不在本地仓库追踪记录里面的，自然stash的时候会忽略它们，这时如果想要
+stash一起保存这些未追踪的文件，我们可以
 
-<br/>接着我们进入了编辑页面，顶部列出了将要[被 rebase]的所有commit记录，也就是我们从master分支checkout出
-v1.0分支后的两条提交记录。这个排列是正序的，和log显示的顺序相反
-<br/>`pick`的意思是直接应用，我们如果要修改某次的提交信息，需要把提交信息改成edit，这样在应用到这条commit记录
-时，Git会停下来让我们改正，假设我们要对这两条commit提交信息分别修改，在vim下将pick改成edit，然后输入`:wq!`或者
-`ZZ`保存并退出
+    git stash -u  //--include-untracked 的简写，将untracked的文件一并临时存储
 
-![](https://i.loli.net/2019/01/02/5c2c696e0e464.png)
-<br/>这里Git在执行到"first commit"便停了下来，提示我们可以通过amend来修改这条commit记录，amend就是用来修改HEAD
-所指向的这条最新记录，这个下面会讲。我们输入git commit --amend，然后进入编辑页面修改上条commit信息，保存
+### 6.操作记录恢复
+<font color=green size=5>涉及到的命令：git reflog</font>
 
-    git rebase --continue  //继续执行rebase
-    git rebase --abort  //退出rebase过程
-执行成功之后，我们log看下commit记录：
+<br/>它是Git仓库中引用的移动记录，如果不指定引用，git log默认展示HEAD所指向的一个顺序的提交列表。它不是本地仓库
+的一部分，它单独存储，而且push，fetch或者clone时都不包括它，它只是本地的一个操作记录
 
-![](https://i.loli.net/2019/01/02/5c2c6b5fccf6e.png)
-<br/>修改成功
+![](https://i.loli.net/2019/01/02/5c2ccda12ffc7.png)
+<br/>每行都由版本号，HEAD值和操作描述三部分组成
++ 版本号：这次操作的一个id
++ HEAD值：同样用来标识版本，但是不同于版本号的时，HEAD值是相对的。括号里的值越小，表示版本越新
++ 描述：操作行为的描述，包括我们commit的信息或者分支的切换等
 
-<br/>**修改当前分支的历史记录**
+<br/>reflog为每一条操作显示其对应的id版本号，这个id可以很好地帮助我们你恢复误操作的数据，例如我们错误地
+reset了一个旧的提交，或者rebase等操作，这个时候我们可以使用reflog去查看在误操作之前的信息，并且使用
+git reset 版本号，去恢复之前的某一次操作状态，操作过后依然可以在reflog中看到状态之后的所有操作记录
 
-<br/>对历史commit记录修改的功能，不仅适用在需要合分支的时候，我们也可以在当前分支进行原地操作，
-直接对当前分支历史错误的提交进行修改
+<br/>区别于git log，log显示的是所有本地版本库的提交信息，commit记录，且不能察看已经删除了的commit记录。
+而git reflog可以查看所有分支的所有操作记录（包括commit和reset的操作），包括已经被删除的commit记录，
+几乎所有的操作都记录在其中，随时可以回滚。
 
-![](https://i.loli.net/2019/01/02/5c2c6c9541028.png)
-<br/>假设我们要对这条commit记录进行更改，执行：
+### 7.补充：vim的操作
+1. 输入i进入插入模式
+2. 按下ESC键，退出编辑模式，切换到命令模式
+3. 保存修改并且退出 vim："ZZ"或者":wq"
+4. 保存文件，不退出vim：":w"
+5. 放弃修改并退出vim：":q!"
+6. 放弃所有文件修改，但不退出 vim：":e!"
 
-    git rebase -i HEAD^^  //也可以是HEAD~3
-Git种有两个【偏移符号】：^和~
-<br/>**a.^的用法**：表示对当前指针指向的commit记录向前偏移，偏移的数量就是^的数量，例如：HEAD^^，
-表示的是HEAD所指向的那个commit往前2个的那条commit记录，也就是图中圈出来我们要修改的那个commit，
-即可以修改的部分是HEAD到偏移2位中间的所有commit
-<br/>**b.~的用法**：同样是当前指针的基础上往回偏移，偏移数量就是~后跟着的数字，效果与HEAD^^一样，
-修改的方法与上述提到的修改方式一样
 
-<br/>记得我们文章上说过rebase吗，它其实是对分支重设基础点的一个操作，在对别的分支操作时，
-会找被rebase的分支和要rebase到的分支两个分支的交点，也就是被rebase的分支的一个基础点，
-分叉点，然后对从基础点分叉出来的提交重新设置为要rebase到的分支最新一条记录
-<br/>所以这里git rebase -i HEAD^^^，rebase后面跟着的是一个自己分支的某个提交记录，
-实际上就是对rebase -i 后面跟着的那条记录开始（不包括开始点）往后的所有commit重新设置基础点，
-把这些commit重新生成一遍再接在这个新的基础点后面，对于文件历史变化来说，这个其实就是空操作
-
-#### 5.替换最近一条commit信息
-<font color=green size=5>涉及到的命令：git commit --amend</font>
-
-<br/>git commit --amend是对上一条commit命令进行修正。当我们执行这条命令时，Git会把暂存区的内容
-和这次commit的新内容合并创建一个新的commit，把我们当前HEAD指向的最新的commit替换掉。例如我们当前
-最新一条commit记录中，我们输入错了提交信息，想要修改，又或者我们提交错了一点东西，又不想生成一个新的
-commit记录，我们都可以使用这个命令
-
-<br/>在我们修改了错误文件test.txt后，执行：
-
-    git add test.txt
-然后我们commit这条修改：
-
-    git commit --amend
-接着我们又一次进入commit的提交信息编辑页面，修改完后保存退出，我们也可以用git log查看提交记录
-
-<br/>amend用于修改上一条commit信息时，实际上并不是对一条commit修改，而是生成新的对它进行替换。我们看
-我们操作的那条commit修改之前，和我们修改后生成的新的commit，id是完全不一样的（上面介绍过生成
-方式），是两个不同的commit
-<br/>所以这个时候如果我们对已经push到远端的commit记录在本地仓库进行--amend操作之后，直接push到远端
-仓库是不会成功的，因为本地丢失了远端仓库的那个我们替换的commit
-<br/>当然如果我们什么都不改直接保存，那就相当于空操作，老的commit就不会被替换了，还是它本身
-
-#### 资料来源与阅读推荐
-+ [原文链接](https://mp.weixin.qq.com/s?__biz=MzU0OTExNzYwNg==&mid=2247484483&idx=1&sn=db181ee210f9490379af3e4a74f0cde8&chksm=fbb58f8accc2069cbe9afda4fcf0222791aee3eefa56e3471d05f4ca7390464ea2ab66e472a0&token=942885247&lang=zh_CN&rd2werd=1#wechat_redirect)
-+ [git merge](https://blog.csdn.net/andyzhaojianhui/article/details/78072143)
-+ [本地对远程仓库的操作](https://blog.zengrong.net/post/1746.html)
+### 8.资料来源与阅读推荐
++ [原文链接](https://mp.weixin.qq.com/s/K7004_PVFW0kj8vcFh0s6Q)
